@@ -6,87 +6,34 @@ from schemas.routing import RouteDecision
 
 llm = ChatOpenAI(model="gpt-4o-mini")
 
-router = llm.with_structured_output(
-    RouteDecision
-)
-
-from langgraph.types import Command
-
-
 MAX_RESEARCH_LOOPS = 3
 
 
 def supervisor(state):
 
     if not state.get("questions"):
-
-        return Command(
-            goto="planner"
-        )
+        return Command(goto="planner")
 
     if not state.get("messages"):
+        return Command(goto="researcher")
 
-        return Command(
-            goto="researcher"
-        )
+    if not state.get("findings"):
+        return Command(goto="researcher")
 
     if not state.get("critiques"):
+        return Command(goto="critic")
 
-        return Command(
-            goto="critic"
-        )
+    current_iterations = state.get("research_iterations", 0)
 
-    if (
-        state.get(
-            "research_iterations",
-            0
-        ) >= MAX_RESEARCH_LOOPS
-    ):
-        return Command(
-            goto="writer"
-        )
+    if current_iterations >= MAX_RESEARCH_LOOPS:
+        return Command(goto="writer")
 
     if state["critiques"].sufficient:
-
-        return Command(
-            goto="writer"
-        )
+        return Command(goto="writer")
 
     return Command(
+        update={
+            "research_iterations": current_iterations + 1
+        },
         goto="researcher"
     )
-
-    decision = router.invoke(
-        f"""
-        Current State
-
-        Questions:
-        {state.get('questions')}
-
-        Findings Count:
-        {len(state.get('findings', []))}
-
-        Critique:
-        {state.get('critiques')}
-
-        Available agents:
-
-        - researcher
-        - writer
-        - FINISH
-
-        Decide the next agent.
-        """
-    )
-
-    if decision.next == "researcher":
-
-        return Command(
-            goto="researcher"
-        )
-    if decision.next == "writer":
-        return Command(
-            goto="writer"
-        )
-    
-    return Command(goto = END)

@@ -4,6 +4,8 @@ from langgraph.graph import (
 )
 
 from graph.state import GraphState
+from agents.extractor import extractor
+
 
 from agents.supervisor import supervisor
 from agents.planner import planner
@@ -45,14 +47,13 @@ builder.add_node(
     writer
 )
 
+builder.add_node("extractor", extractor)
+
 builder.add_edge(
     START,
     "supervisor"
 )
+builder.add_edge("tools", "extractor")  # not "critic" directly
 
-builder.add_edge(
-    "tools",
-    "critic"
-)
 
 graph = builder.compile()

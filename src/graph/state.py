@@ -2,8 +2,8 @@ from typing import TypedDict
 
 from langchain_core.messages import BaseMessage
 
-from models.finding import Finding
-from models.critique import Critique
+from schemas.finding import Finding
+from schemas.critique import Critique
 
 
 class GraphState(TypedDict):

@@ -1,6 +1,6 @@
 Research Supervisor Agent
 A production multi-agent research system built with LangGraph. Give it a topic — it plans, searches the web, critiques its own findings, and writes a structured research report.
-Live API: `https://research-supervisor-agent-production.up.railway.app/docs`(https://research-supervisor-agent-production.up.railway.app/docs)
+Live API: `Research-Supervisor-Agent`<https://research-supervisor-agent-production.up.railway.app/docs>
 ---
 How It Works
 The system uses a Supervisor architecture with 5 specialized agents that collaborate through a self-correcting reflection loop.

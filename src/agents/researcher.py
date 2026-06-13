@@ -4,14 +4,18 @@ from langchain_core.messages import HumanMessage
 
 from langgraph.types import Command
 
+from langchain_openai import ChatOpenAI
+from config.settings import OPENAI_API_KEY
+
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key=OPENAI_API_KEY
+)
+
 from tools.search import search_web
 # from tools.wikipedia import search_wikipedia
 # from tools.arxiv import search_arxiv
 
-
-llm = ChatOpenAI(
-    model="gpt-4o-mini"
-)
 
 tools = [
     search_web

@@ -1,8 +1,13 @@
 from langchain_openai import ChatOpenAI
 from langgraph.types import Command
 from langgraph.graph import END
+from langchain_openai import ChatOpenAI
+from config.settings import OPENAI_API_KEY
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key=OPENAI_API_KEY
+)
 
 
 def writer(state):

@@ -1,8 +1,13 @@
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 from langgraph.types import Command
+from langchain_openai import ChatOpenAI
+from config.settings import OPENAI_API_KEY
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key=OPENAI_API_KEY
+)
 
 
 class ResearchPlan(BaseModel):

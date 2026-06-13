@@ -1,10 +1,10 @@
 # src/tools/search.py
 
+from config.settings import TAVILY_API_KEY
 from langchain_core.tools import tool
 from tavily import TavilyClient
-import os
 
-client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+client = TavilyClient(api_key=TAVILY_API_KEY)
 
 @tool
 def search_web(query: str) -> str:

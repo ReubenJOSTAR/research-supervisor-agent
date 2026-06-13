@@ -3,8 +3,13 @@ from langgraph.types import Command
 
 from schemas.critique import Critique
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+from langchain_openai import ChatOpenAI
+from config.settings import OPENAI_API_KEY
 
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key=OPENAI_API_KEY
+)
 judge = llm.with_structured_output(
     Critique
 )

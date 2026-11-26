@@ -38,3 +38,14 @@ def test_non_reducer_field_is_overwritten():
     graph = _two_step_graph({"research_iterations": 1}, {"research_iterations": 2})
     result = graph.invoke({"query": "x"})
     assert result["research_iterations"] == 2
+
+
+def test_critique_history_accumulates_across_two_updates():
+    from schemas.critique import Critique
+
+    scores = {"coverage": 0.2, "evidence_quality": 0.2, "source_diversity": 0.2, "completeness": 0.2}
+    c1 = Critique(sufficient=False, scores=scores, gaps=["g1"], critique="r1")
+    c2 = Critique(sufficient=False, scores=scores, gaps=["g2"], critique="r2")
+    graph = _two_step_graph({"critique_history": [c1]}, {"critique_history": [c2]})
+    result = graph.invoke({"query": "x", "critique_history": []})
+    assert result["critique_history"] == [c1, c2]

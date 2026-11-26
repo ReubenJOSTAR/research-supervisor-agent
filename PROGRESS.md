@@ -3,16 +3,16 @@
 New session? Read `CLAUDE.md`, then this file, then the spec for the next phase in `UPGRADE_PROMPT.md`. Update this file before ending the session.
 
 **Branch:** `upgrade/v2` is the integration branch. Each phase is developed on a session branch and merged into `upgrade/v2` via PR; `upgrade/v2` goes to `main` once all phases are done.
-**Current phase:** 3
-**Last updated:** 2026-11-26 — Phase 2 done
+**Current phase:** 4
+**Last updated:** 2026-11-26 — Phase 3 done
 
 ## Status
 
 | Phase | Feature | Status | Commit | Notes |
 |---|---|---|---|---|
 | 1 | Bug fixes | ✅ Done | b450e3c | PR #1 → `upgrade/v2`. Verified with a mocked end-to-end run; no pytest suite yet (Phase 2) |
-| 2 | Config + tests | ✅ Done | 011758e | PR #2 → `upgrade/v2` from `claude/magical-dijkstra-nqe5vb`. 14 tests pass on 3.11 and 3.13 |
-| 3 | Critic with gaps + scores | ⬜ Not started | | |
+| 2 | Config + tests | ✅ Done | 011758e | PR #2 (merged) → `upgrade/v2` from `claude/magical-dijkstra-nqe5vb`. 14 tests pass on 3.11 and 3.13 |
+| 3 | Critic with gaps + scores | ✅ Done | 4457894 | PR #3 → `upgrade/v2`. 25 tests pass (3.11 + 3.13). Done in the same session as Phase 2 at Reuben's request |
 | 4 | Parallel research (Send) | ⬜ Not started | | |
 | 5 | Grounded citations | ⬜ Not started | | |
 | 6 | Async + token streaming | ⬜ Not started | | |
@@ -38,7 +38,8 @@ Status key: ⬜ Not started · 🟡 In progress · ✅ Done · 🔴 Blocked · �
 | Phase | Check | Result |
 |---|---|---|
 | 1 | One `/research` call returns a report; `research_iterations` ≥ 1 | ⬜ pending |
-| 2 | `pip install -r requirements-dev.txt && pytest` passes locally | ⬜ pending |
+| 2 | `pip install -r requirements-dev.txt && pytest` passes locally; `docker build .` succeeds | ⬜ pending |
+| 3 | Stream a query; critic events show scores and gaps; round 2 searches the gaps | ⬜ pending (Reuben chose to defer manual checks) |
 
 ## Decisions
 Choices made where the spec was ambiguous (phase — decision — why).
@@ -55,6 +56,11 @@ Choices made where the spec was ambiguous (phase — decision — why).
 - 2 — `MAX_TOOL_CALLS_PER_QUESTION` (default 2): stated in the researcher prompt and hard-capped at `max × len(questions)` tool calls per round until Phase 4 makes it per-branch.
 - 2 — `settings.py` still raises at import without API keys (fail fast in prod); `tests/conftest.py` sets dummy keys.
 - 2 — Pinned to versions installed today; verified install + tests + `import main` on Python 3.11 (Docker daemon unavailable, so no image build). Added `langchain-core` and `langsmith` pins explicitly (both imported directly).
+- 3 — Phase 3 was built in the same session as Phase 2 because Reuben asked to continue without doing the manual checks first. Manual checks for 1–3 are still pending.
+- 3 — The critic LLM returns `CritiqueAssessment` (scores, gaps, critique) and `sufficient` is derived in code (`Critique.from_assessment`). The `Critique` validator still rejects inconsistent values, but an inconsistent LLM answer can't crash the run.
+- 3 — Sufficiency threshold 0.7 is the constant `SUFFICIENT_SCORE` in `schemas/critique.py`, not an env var.
+- 3 — New state field `research_queue` holds what the researcher works on this round: the planner sets it to its questions (the planner goes straight to the researcher), and the supervisor sets it to the gaps on loop-back. Phase 4 can fan out one `Send` per queue item.
+- 3 — Insufficient critique with no gaps → writer (there is nothing to research, and the original questions must not be repeated).
 
 ## Blockers / needs Reuben
 - [ ] Railway: add a Postgres instance and set `DATABASE_URL` (needed by Phase 8 in production)
@@ -66,9 +72,11 @@ What went wrong, what was rolled back, which guardrail was added to CLAUDE.md.
 - (none)
 
 ## Notes for later phases
+- Phase 4: fan out over `state["research_queue"]` (questions in round 1, gaps after). The planner → researcher edge bypasses the supervisor. `tests/test_workflow.py` runs the whole graph with fakes; update it for the new nodes.
+- Scores use `Field(ge=0, le=1)`; if OpenAI structured output ever rejects `minimum`/`maximum` in the schema, drop the bounds from `CritiqueAssessment` and clamp instead.
 - `config/settings.py` raises at import when API keys are unset; `tests/conftest.py` sets dummy keys. Agents build their LLMs at import, so tests patch module-level objects (e.g. `agents.researcher.research_agent`).
 - `evaluation/eval.py` creates a LangSmith `Client()` at import (Phase 10 fixes this).
 - README "Key design decisions" still describes a combined researcher+extractor node (Phase 11 rewrite).
 
 ## Next step
-Merge the Phase 2 PR into `upgrade/v2` (after `pytest` passes locally), then Phase 3 on a branch off `upgrade/v2`: Critique with scores + gaps (validator), later rounds research only gaps, `critique_history`. Tests: inconsistent `sufficient` rejected; supervisor routes gaps on round ≥ 2.
+Reuben: run the pending manual checks (Phases 1–3) when convenient, then merge PR #3 into `upgrade/v2`. Then Phase 4 in a new session on a branch off `upgrade/v2`: parallel research via `Send` (one branch per `research_queue` item, `research_task` node, failing branch returns no findings). Tests: N branches for N queries; one branch raising doesn't fail the run.

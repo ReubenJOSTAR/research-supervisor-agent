@@ -13,14 +13,18 @@ def supervisor(state) -> Command[Literal["planner", "researcher", "critic", "wri
 
     iterations = state.get("research_iterations", 0)
 
+    # Round 1 researches the planner's questions.
     if iterations == 0:
-        return Command(goto="researcher")
+        return Command(update={"research_queue": state["questions"]}, goto="researcher")
 
-    if not state.get("critiques"):
+    critique = state.get("critiques")
+    if not critique:
         return Command(goto="critic")
 
-    if state["critiques"].sufficient or iterations >= settings.MAX_RESEARCH_LOOPS:
+    # No gaps means there is nothing left to research, even if scores are low.
+    if critique.sufficient or not critique.gaps or iterations >= settings.MAX_RESEARCH_LOOPS:
         return Command(goto="writer")
 
-    # Loop back: clear the critique so the critic runs again next round.
-    return Command(update={"critiques": None}, goto="researcher")
+    # Round 2+: research only the critic's gaps, never the original questions.
+    # Clear the critique so the critic runs again next round.
+    return Command(update={"critiques": None, "research_queue": critique.gaps}, goto="researcher")

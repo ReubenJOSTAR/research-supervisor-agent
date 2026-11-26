@@ -14,7 +14,7 @@ research_agent = llm.bind_tools([search_web])
 
 def researcher(state) -> Command[Literal["tools", "extractor"]]:
 
-    questions = state["questions"]
+    queries = state["research_queue"]
 
     prompt = f"""
     You are a research agent.
@@ -26,7 +26,7 @@ def researcher(state) -> Command[Literal["tools", "extractor"]]:
 
     Research these questions:
 
-    {questions}
+    {queries}
 
     Use whichever tools are necessary, at most
     {settings.MAX_TOOL_CALLS_PER_QUESTION} searches per question.
@@ -35,7 +35,7 @@ def researcher(state) -> Command[Literal["tools", "extractor"]]:
     response = research_agent.invoke([HumanMessage(content=prompt)])
 
     # Hard cap on searches per round, in case the model ignores the prompt.
-    max_calls = settings.MAX_TOOL_CALLS_PER_QUESTION * max(len(questions), 1)
+    max_calls = settings.MAX_TOOL_CALLS_PER_QUESTION * max(len(queries), 1)
     if len(response.tool_calls) > max_calls:
         response.tool_calls = response.tool_calls[:max_calls]
 

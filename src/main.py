@@ -52,6 +52,7 @@ def run_research(request: ResearchRequest):
             "questions": [],
             "findings": [],
             "critiques": None,
+            "critique_history": [],
             "research_iterations": 0,
             "finalReport": ""
         })
@@ -83,6 +84,7 @@ def stream_research(request: ResearchRequest):
                     "questions": [],
                     "findings": [],
                     "critiques": None,
+                    "critique_history": [],
                     "research_iterations": 0,
                     "finalReport": ""
                 },

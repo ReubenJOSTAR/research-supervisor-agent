@@ -84,7 +84,7 @@ data: {"node": "planner", "data": {"questions": [...]}}
 
 data: {"node": "researcher", "data": {"findings": [...]}}
 
-data: {"node": "critic", "data": {"critiques": {...}}}
+data: {"node": "critic", "data": {"critiques": {"sufficient": false, "scores": {...}, "gaps": [...], "critique": "..."}, "critique_history": [...]}}
 
 data: {"node": "writer", "data": {"finalReport": "..."}}
 
@@ -167,7 +167,7 @@ Key Design Decisions
 Rule-based supervisor over LLM routing. The supervisor uses deterministic if/else logic rather than an LLM to decide routing. This eliminates a class of hallucination bugs where the router sends execution to a nonexistent node, and reduces latency and cost per iteration.
 Combined search and extraction in one node. The researcher handles both tool calling and structured extraction internally — two sequential LLM calls in one node. This keeps the graph clean and avoids an extra extraction node hop while maintaining structured `Finding` output.
 Pydantic schemas for all inter-agent communication. Every agent output that crosses a node boundary is a typed Pydantic model. This catches malformed outputs at the boundary rather than letting bad data propagate through multiple nodes before failing.
-`sufficient` flag as loop control signal. The critic returns a `Critique` model with a boolean `sufficient` field. The supervisor reads this flag directly rather than parsing free-text critique — making the loop control deterministic and testable.
+Scored critique with named gaps. The critic scores coverage, evidence quality, source diversity and completeness (0–1) and lists `gaps` as follow-up queries. `sufficient` is derived from those (every score ≥ 0.7 and no gaps) and a Pydantic validator rejects any `Critique` where it disagrees. From round 2 the researcher searches only the gaps, never the original questions, and every round's critique is kept in `critique_history`.
 ---
 Environment Variables
 Variable	Description

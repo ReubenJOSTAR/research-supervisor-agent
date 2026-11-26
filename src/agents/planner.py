@@ -1,15 +1,12 @@
 from typing import Literal
 
-from langchain_openai import ChatOpenAI
 from langgraph.types import Command
 from pydantic import BaseModel
 
-from config.settings import OPENAI_API_KEY
+from config import settings
+from config.llm import get_llm
 
-llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    api_key=OPENAI_API_KEY
-)
+llm = get_llm()
 
 
 class ResearchPlan(BaseModel):
@@ -29,7 +26,7 @@ def planner(state) -> Command[Literal["researcher"]]:
         f"""
         You are an expert research planner.
 
-        Generate 5 research questions that cover:
+        Generate {settings.NUM_QUESTIONS} research questions that cover:
 
         - Fundamentals
         - Current state

@@ -2,7 +2,7 @@
 
 New session? Read `CLAUDE.md`, then this file, then the spec for the next phase in `UPGRADE_PROMPT.md`. Update this file before ending the session.
 
-**Branch:** `claude/claude-md-upgrade-prompt-fctm2r` (cloud session branch; see Decisions)
+**Branch:** `upgrade/v2` is the integration branch. Each phase is developed on a session branch and merged into `upgrade/v2` via PR; `upgrade/v2` goes to `main` once all phases are done.
 **Current phase:** 2
 **Last updated:** 2026-11-26 — Phase 1 done
 
@@ -10,7 +10,7 @@ New session? Read `CLAUDE.md`, then this file, then the spec for the next phase 
 
 | Phase | Feature | Status | Commit | Notes |
 |---|---|---|---|---|
-| 1 | Bug fixes | ✅ Done | b450e3c | Verified with a mocked end-to-end run; no pytest suite yet (Phase 2) |
+| 1 | Bug fixes | ✅ Done | b450e3c | PR #1 → `upgrade/v2`. Verified with a mocked end-to-end run; no pytest suite yet (Phase 2) |
 | 2 | Config + tests | ⬜ Not started | | |
 | 3 | Critic with gaps + scores | ⬜ Not started | | |
 | 4 | Parallel research (Send) | ⬜ Not started | | |
@@ -41,7 +41,7 @@ Status key: ⬜ Not started · 🟡 In progress · ✅ Done · 🔴 Blocked · �
 
 ## Decisions
 Choices made where the spec was ambiguous (phase — decision — why).
-- 1 — Work is on `claude/claude-md-upgrade-prompt-fctm2r`, not `upgrade/v2` — the cloud session may only push to its assigned branch. Reuben: merge into `upgrade/v2` or keep using this branch.
+- 1 — Created `upgrade/v2` from `main` (Reuben's request). All upgrade PRs target `upgrade/v2`, never `main`. Phase 1 was done on `claude/claude-md-upgrade-prompt-fctm2r` and goes in via PR #1.
 - 1 — The extractor increments `research_iterations` — every research pass (tool calls or not) ends there, so one place counts rounds. Researcher with no tool calls routes straight to the extractor.
 - 1 — `MAX_RESEARCH_LOOPS=3` now caps total rounds at 3 (old code allowed up to 4 because the first round wasn't counted).
 - 1 — Extractor reads only the trailing ToolMessages (current round) — with `add_messages` accumulating, reading all of them would re-extract earlier rounds into duplicate findings.
@@ -63,4 +63,4 @@ What went wrong, what was rolled back, which guardrail was added to CLAUDE.md.
 - README "Key design decisions" still describes a combined researcher+extractor node (Phase 11 rewrite).
 
 ## Next step
-Phase 2: settings + shared LLM factory + pinned deps + test suite (supervisor routing branches, reducers).
+Merge PR #1 into `upgrade/v2` (after the manual check), then Phase 2 on a branch off `upgrade/v2`, PR into `upgrade/v2`: settings + shared LLM factory + pinned deps + test suite (supervisor routing branches, reducers).

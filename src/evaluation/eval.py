@@ -4,13 +4,13 @@ import json
 import os
 
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langsmith import Client
 from langsmith.evaluation import evaluate
 from pydantic import BaseModel, Field
 
 load_dotenv()
 
+from config.llm import get_llm
 from graph.workflow import graph
 
 # Instantiate LangSmith client
@@ -178,7 +178,7 @@ def quality_evaluator(run, example):
             "comment": "No report generated"
         }
 
-    judge = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(
+    judge = get_llm(temperature=0).with_structured_output(
         QualityJudgement
     )
 

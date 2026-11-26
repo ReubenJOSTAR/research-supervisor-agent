@@ -144,7 +144,8 @@ research-supervisor-agent/
 └── src/
     ├── main.py                 # FastAPI app — endpoints and streaming
     ├── config/
-    │   └── settings.py         # environment variable loading
+    │   ├── settings.py         # env vars and tunables
+    │   └── llm.py              # shared LLM factory (get_llm)
     ├── graph/
     │   ├── state.py            # GraphState TypedDict
     │   └── workflow.py         # graph assembly and compilation
@@ -172,6 +173,12 @@ Environment Variables
 Variable	Description
 `OPENAI_API_KEY`	OpenAI API key — used by all agents
 `TAVILY_API_KEY`	Tavily API key — used by the researcher for web search
+`OPENAI_MODEL`	OpenAI chat model for every agent (default `gpt-4o-mini`)
+`LLM_TEMPERATURE`	Sampling temperature for every agent (default `0`)
+`MAX_RESEARCH_LOOPS`	Max research rounds before writing (default `3`)
+`NUM_QUESTIONS`	Research questions the planner generates (default `5`)
+`MAX_TOOL_CALLS_PER_QUESTION`	Max web searches per question per round (default `2`)
+`MODEL_PRICES`	JSON price table, USD per 1M tokens: `{"model": {"input": x, "output": y}}` (default: built-in table for `gpt-4o-mini`, `gpt-4o`)
 ---
 Planned Improvements
 [ ] Wikipedia and arXiv tool integration

@@ -13,13 +13,14 @@ Python 3.11 · LangGraph · LangChain (langchain-openai) · OpenAI gpt-4o-mini �
 src/
   main.py               FastAPI app, endpoints, SSE streaming
   config/settings.py    env vars and tunables
+  config/llm.py         get_llm(): the only place ChatOpenAI is created
   graph/state.py        GraphState
   graph/workflow.py     graph assembly
   agents/               supervisor, planner, researcher, extractor, critic, writer
   schemas/              Pydantic models (Finding, Critique)
   tools/                search_web (Tavily), ToolNode
   evaluation/           eval.py (LangSmith) + research_agent_evals.jsonl
-tests/                  (created in Phase 2)
+tests/                  pytest suite (pytest.ini sets pythonpath = src)
 ```
 Code runs from `src/` (`cd src && uvicorn main:app --reload`); imports are relative to `src/` (e.g. `from agents.critic import critic`). Tests must set this up via `pythonpath = src` in pytest config.
 

@@ -2,7 +2,7 @@ from typing import Literal
 
 from langgraph.types import Command
 
-MAX_RESEARCH_LOOPS = 3
+from config import settings
 
 
 def supervisor(state) -> Command[Literal["planner", "researcher", "critic", "writer"]]:
@@ -19,7 +19,7 @@ def supervisor(state) -> Command[Literal["planner", "researcher", "critic", "wri
     if not state.get("critiques"):
         return Command(goto="critic")
 
-    if state["critiques"].sufficient or iterations >= MAX_RESEARCH_LOOPS:
+    if state["critiques"].sufficient or iterations >= settings.MAX_RESEARCH_LOOPS:
         return Command(goto="writer")
 
     # Loop back: clear the critique so the critic runs again next round.

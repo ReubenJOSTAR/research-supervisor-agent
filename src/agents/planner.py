@@ -1,7 +1,9 @@
-from pydantic import BaseModel
+from typing import Literal
+
 from langchain_openai import ChatOpenAI
 from langgraph.types import Command
-from langchain_openai import ChatOpenAI
+from pydantic import BaseModel
+
 from config.settings import OPENAI_API_KEY
 
 llm = ChatOpenAI(
@@ -19,7 +21,7 @@ planner_llm = llm.with_structured_output(
 )
 
 
-def planner(state):
+def planner(state) -> Command[Literal["researcher"]]:
 
     query = state["query"]
 

@@ -67,7 +67,7 @@ Response:
     "What are the fundamental principles of LangGraph?",
     "..."
   ],
-  "iterations": 2
+  "research_iterations": 2
 }
 ```
 ---

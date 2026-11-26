@@ -1,42 +1,26 @@
-from langchain_openai import ChatOpenAI
-from langgraph.types import Command
-from langgraph.graph import END
-from langchain_openai import ChatOpenAI
-from config.settings import OPENAI_API_KEY
+from typing import Literal
 
-llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    api_key=OPENAI_API_KEY
-)
+from langgraph.types import Command
 
 MAX_RESEARCH_LOOPS = 3
 
 
-def supervisor(state):
+def supervisor(state) -> Command[Literal["planner", "researcher", "critic", "writer"]]:
+    """Deterministic router: plain Python, no LLM."""
 
     if not state.get("questions"):
         return Command(goto="planner")
 
-    if not state.get("messages"):
-        return Command(goto="researcher")
+    iterations = state.get("research_iterations", 0)
 
-    if not state.get("findings"):
+    if iterations == 0:
         return Command(goto="researcher")
 
     if not state.get("critiques"):
         return Command(goto="critic")
 
-    current_iterations = state.get("research_iterations", 0)
-
-    if current_iterations >= MAX_RESEARCH_LOOPS:
+    if state["critiques"].sufficient or iterations >= MAX_RESEARCH_LOOPS:
         return Command(goto="writer")
 
-    if state["critiques"].sufficient:
-        return Command(goto="writer")
-
-    return Command(
-        update={
-            "research_iterations": current_iterations + 1
-        },
-        goto="researcher"
-    )
+    # Loop back: clear the critique so the critic runs again next round.
+    return Command(update={"critiques": None}, goto="researcher")

@@ -11,7 +11,7 @@ New session? Read `CLAUDE.md`, then this file, then the spec for the next phase 
 | Phase | Feature | Status | Commit | Notes |
 |---|---|---|---|---|
 | 1 | Bug fixes | ✅ Done | b450e3c | PR #1 → `upgrade/v2`. Verified with a mocked end-to-end run; no pytest suite yet (Phase 2) |
-| 2 | Config + tests | ✅ Done | 011758e | PR → `upgrade/v2` from `claude/magical-dijkstra-nqe5vb`. 14 tests pass on 3.11 and 3.13 |
+| 2 | Config + tests | ✅ Done | 011758e | PR #2 → `upgrade/v2` from `claude/magical-dijkstra-nqe5vb`. 14 tests pass on 3.11 and 3.13 |
 | 3 | Critic with gaps + scores | ⬜ Not started | | |
 | 4 | Parallel research (Send) | ⬜ Not started | | |
 | 5 | Grounded citations | ⬜ Not started | | |

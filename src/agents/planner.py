@@ -42,7 +42,9 @@ def planner(state) -> Command[Literal["researcher"]]:
 
     return Command(
         update={
-            "questions": plan.questions
+            "questions": plan.questions,
+            # Round 1 researches the planner's questions.
+            "research_queue": plan.questions,
         },
         goto="researcher"
     )

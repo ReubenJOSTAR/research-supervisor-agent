@@ -30,6 +30,7 @@ def run_agent(inputs: dict) -> dict:
         "questions": [],
         "findings": [],
         "critiques": None,
+        "critique_history": [],
         "research_iterations": 0,
         "finalReport": ""
     })

@@ -1,7 +1,9 @@
+from typing import Literal
+
 from langchain_openai import ChatOpenAI
-from langgraph.types import Command
 from langgraph.graph import END
-from langchain_openai import ChatOpenAI
+from langgraph.types import Command
+
 from config.settings import OPENAI_API_KEY
 
 llm = ChatOpenAI(
@@ -10,7 +12,7 @@ llm = ChatOpenAI(
 )
 
 
-def writer(state):
+def writer(state) -> Command[Literal["__end__"]]:
 
     report = llm.invoke(
         f"""

@@ -1,10 +1,10 @@
+from typing import Literal
+
 from langchain_openai import ChatOpenAI
 from langgraph.types import Command
 
-from schemas.critique import Critique
-
-from langchain_openai import ChatOpenAI
 from config.settings import OPENAI_API_KEY
+from schemas.critique import Critique
 
 llm = ChatOpenAI(
     model="gpt-4o-mini",
@@ -15,7 +15,7 @@ judge = llm.with_structured_output(
 )
 
 
-def critic(state):
+def critic(state) -> Command[Literal["supervisor"]]:
 
     findings = state["findings"]
     topic = state['query']

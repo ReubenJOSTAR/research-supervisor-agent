@@ -1,11 +1,13 @@
 # src/evaluation/eval.py
 
+import json
+import os
+
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
 from langsmith import Client
 from langsmith.evaluation import evaluate
-from langchain_openai import ChatOpenAI
-from dotenv import load_dotenv
-import os
-import json
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -34,7 +36,7 @@ def run_agent(inputs: dict) -> dict:
     return {
         "report": result.get("finalReport", ""),
         "questions": result.get("questions", []),
-        "iterations": result.get("research_iterations", 0)
+        "research_iterations": result.get("research_iterations", 0)
     }
 
 
@@ -120,7 +122,8 @@ def depth_evaluator(run, example):
     Checks how thoroughly the agent researched.
     More iterations with sufficient=True = good critic.
     """
-    iterations = run.outputs.get("iterations", 0)
+    # research_iterations = research rounds completed (1 after the first pass)
+    iterations = run.outputs.get("research_iterations", 0)
     questions = run.outputs.get("questions", [])
 
     score = 0.0
@@ -133,13 +136,13 @@ def depth_evaluator(run, example):
         feedback.append(f"Only {len(questions)} questions generated")
 
     # Did it use the research loop properly?
-    # 1 iteration = critic said sufficient immediately
-    # 2-3 iterations = critic worked properly
+    # 1 round = critic said sufficient immediately
+    # 2-3 rounds = critic asked for more research
     if iterations >= 1:
         score += 0.3
     if iterations >= 2:
         score += 0.2
-        feedback.append(f"Good: researched {iterations} iterations")
+        feedback.append(f"Good: researched {iterations} rounds")
 
     return {
         "key": "depth_score",
@@ -153,6 +156,11 @@ def depth_evaluator(run, example):
 # Uses a model to assess insight and relevance
 # This costs tokens — use sparingly
 # ============================================================
+
+class QualityJudgement(BaseModel):
+    score: float = Field(ge=0.0, le=1.0, description="Overall quality from 0.0 to 1.0")
+    reasoning: str = Field(description="Brief explanation of the score")
+
 
 def quality_evaluator(run, example):
     """
@@ -170,7 +178,9 @@ def quality_evaluator(run, example):
             "comment": "No report generated"
         }
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    judge = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(
+        QualityJudgement
+    )
 
     prompt = f"""You are evaluating a research report.
 
@@ -185,16 +195,14 @@ Score this report from 0.0 to 1.0 on these criteria:
 - Clarity: is it well-written and easy to understand?
 - Accuracy: does the content seem factually sound?
 
-Respond with ONLY a JSON object:
-{{"score": 0.85, "reasoning": "brief explanation"}}"""
+Give one overall score and a brief reasoning."""
 
     try:
-        response = llm.invoke(prompt)
-        result = json.loads(response.content)
+        result = judge.invoke(prompt)
         return {
             "key": "quality_score",
-            "score": float(result["score"]),
-            "comment": result.get("reasoning", "")
+            "score": result.score,
+            "comment": result.reasoning
         }
     except Exception as e:
         return {

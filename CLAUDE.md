@@ -61,4 +61,4 @@ Code runs from `src/` (`cd src && uvicorn main:app --reload`); imports are relat
 
 ## Guardrails learned
 Add a line here whenever a session goes wrong, so it doesn't happen again.
-- (none yet)
+- Before starting a phase, check for open PRs into `upgrade/v2`; if the phase already has one, stop and ask. (Two sessions both built Phase 4: PR #4 merged, duplicate PR #5 closed.)

@@ -78,7 +78,7 @@ Choices made where the spec was ambiguous (phase — decision — why).
 
 ## Rollbacks / incidents
 What went wrong, what was rolled back, which guardrail was added to CLAUDE.md.
-- (none)
+- 4 — Two sessions built Phase 4 in parallel (PR #4 and PR #5). #4 merged; #5 closed as a duplicate. Guardrail added: check open PRs into `upgrade/v2` before starting a phase.
 
 ## Notes for later phases
 - Phase 5: findings now come from parallel branches in nondeterministic order; assign IDs after merge (e.g. in the writer or a dedupe step), not inside branches. Branch extraction prompts live in `agents/research_task.py`.

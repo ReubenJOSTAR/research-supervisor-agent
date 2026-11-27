@@ -13,7 +13,7 @@ New session? Read `CLAUDE.md`, then this file, then the spec for the next phase 
 | 1 | Bug fixes | ✅ Done | b450e3c | PR #1 → `upgrade/v2`. Verified with a mocked end-to-end run; no pytest suite yet (Phase 2) |
 | 2 | Config + tests | ✅ Done | 011758e | PR #2 (merged) → `upgrade/v2` from `claude/magical-dijkstra-nqe5vb`. 14 tests pass on 3.11 and 3.13 |
 | 3 | Critic with gaps + scores | ✅ Done | 4457894 | PR #3 → `upgrade/v2`. 25 tests pass (3.11 + 3.13). Done in the same session as Phase 2 at Reuben's request |
-| 4 | Parallel research (Send) | ✅ Done | 51383ff | PR → `upgrade/v2` from `claude/next-upgrade-phase-k9t1jy`. 30 tests pass (3.13) |
+| 4 | Parallel research (Send) | ✅ Done | 51383ff | PR #5 → `upgrade/v2` from `claude/next-upgrade-phase-k9t1jy`. 30 tests pass (3.13) |
 | 5 | Grounded citations | ⬜ Not started | | |
 | 6 | Async + token streaming | ⬜ Not started | | |
 | 7 | Observability + cost | ⬜ Not started | | |

@@ -1,11 +1,28 @@
 from typing import Literal
 
-from langgraph.types import Command
+from langgraph.types import Command, Send
 
 from config import settings
 
 
-def supervisor(state) -> Command[Literal["planner", "researcher", "critic", "writer"]]:
+def _fan_out(state, queue: list[str], update: dict) -> Command:
+    """Start a research round: one parallel `research_task` branch per query.
+
+    The round is counted here, when it is dispatched; branches return to the
+    supervisor only after all of them finish, so `research_iterations` equals
+    rounds completed whenever the supervisor next runs.
+    """
+    return Command(
+        update={
+            **update,
+            "research_queue": queue,
+            "research_iterations": state.get("research_iterations", 0) + 1,
+        },
+        goto=[Send("research_task", {"topic": state["query"], "task": q}) for q in queue],
+    )
+
+
+def supervisor(state) -> Command[Literal["planner", "research_task", "critic", "writer"]]:
     """Deterministic router: plain Python, no LLM."""
 
     if not state.get("questions"):
@@ -15,7 +32,7 @@ def supervisor(state) -> Command[Literal["planner", "researcher", "critic", "wri
 
     # Round 1 researches the planner's questions.
     if iterations == 0:
-        return Command(update={"research_queue": state["questions"]}, goto="researcher")
+        return _fan_out(state, state["questions"], {})
 
     critique = state.get("critiques")
     if not critique:
@@ -27,4 +44,4 @@ def supervisor(state) -> Command[Literal["planner", "researcher", "critic", "wri
 
     # Round 2+: research only the critic's gaps, never the original questions.
     # Clear the critique so the critic runs again next round.
-    return Command(update={"critiques": None, "research_queue": critique.gaps}, goto="researcher")
+    return _fan_out(state, critique.gaps, {"critiques": None})

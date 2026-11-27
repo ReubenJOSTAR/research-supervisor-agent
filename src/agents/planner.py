@@ -18,7 +18,7 @@ planner_llm = llm.with_structured_output(
 )
 
 
-def planner(state) -> Command[Literal["researcher"]]:
+def planner(state) -> Command[Literal["supervisor"]]:
 
     query = state["query"]
 
@@ -41,10 +41,7 @@ def planner(state) -> Command[Literal["researcher"]]:
     )
 
     return Command(
-        update={
-            "questions": plan.questions,
-            # Round 1 researches the planner's questions.
-            "research_queue": plan.questions,
-        },
-        goto="researcher"
+        update={"questions": plan.questions},
+        # The supervisor fans out one research branch per question.
+        goto="supervisor"
     )

@@ -40,6 +40,6 @@ def test_llm_factory_uses_settings(monkeypatch):
 def test_graph_compiles():
     from graph.workflow import graph
 
-    assert {"supervisor", "planner", "researcher", "tools", "extractor", "critic", "writer"} <= set(
+    assert {"supervisor", "planner", "research_task", "critic", "writer"} <= set(
         graph.nodes
     )

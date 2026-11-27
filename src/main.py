@@ -48,7 +48,6 @@ def run_research(request: ResearchRequest):
     try:
         result = graph.invoke({
             "query": request.query,
-            "messages": [],
             "questions": [],
             "findings": [],
             "critiques": None,
@@ -80,7 +79,6 @@ def stream_research(request: ResearchRequest):
             for chunk in graph.stream(
                 {
                     "query": request.query,
-                    "messages": [],
                     "questions": [],
                     "findings": [],
                     "critiques": None,

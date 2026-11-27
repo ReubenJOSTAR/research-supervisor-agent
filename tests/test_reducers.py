@@ -1,5 +1,4 @@
 """List fields in GraphState accumulate across updates instead of being overwritten."""
-from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph import END, START, StateGraph
 
 from graph.state import GraphState
@@ -23,15 +22,6 @@ def test_findings_accumulate_across_two_updates():
     graph = _two_step_graph({"findings": [F1]}, {"findings": [F2]})
     result = graph.invoke({"query": "x", "findings": []})
     assert result["findings"] == [F1, F2]
-
-
-def test_messages_accumulate_across_two_updates():
-    graph = _two_step_graph(
-        {"messages": [HumanMessage(content="hi", id="1")]},
-        {"messages": [AIMessage(content="hello", id="2")]},
-    )
-    result = graph.invoke({"query": "x", "messages": []})
-    assert [m.content for m in result["messages"]] == ["hi", "hello"]
 
 
 def test_non_reducer_field_is_overwritten():

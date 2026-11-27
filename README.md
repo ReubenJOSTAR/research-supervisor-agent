@@ -78,17 +78,21 @@ Content-Type: application/json
 
 {"query": "What is LangGraph?"}
 ```
-Returns Server-Sent Events — one event per agent node as it completes:
+Returns Server-Sent Events: a `node` event per agent step, a `token` event per writer token as the report is written, then one `done` event with the final report (or an `error` event with a generic message if the run fails):
 ```
-data: {"node": "planner", "data": {"questions": [...]}}
+data: {"type": "node", "node": "planner", "data": {"questions": [...]}}
 
-data: {"node": "research_task", "data": {"findings": [...]}}
+data: {"type": "node", "node": "research_task", "data": {"findings": [...]}}
 
-data: {"node": "critic", "data": {"critiques": {"sufficient": false, "scores": {...}, "gaps": [...], "critique": "..."}, "critique_history": [...]}}
+data: {"type": "node", "node": "critic", "data": {"critiques": {"sufficient": false, "scores": {...}, "gaps": [...], "critique": "..."}, "critique_history": [...]}}
 
-data: {"node": "writer", "data": {"finalReport": "..."}}
+data: {"type": "token", "content": "Solar"}
 
-data: [DONE]
+data: {"type": "token", "content": " power"}
+
+data: {"type": "node", "node": "writer", "data": {"finalReport": "..."}}
+
+data: {"type": "done", "report": "...", "questions": [...], "research_iterations": 2}
 ```
 ---
 Run Locally

@@ -1,12 +1,16 @@
+import json
+import logging
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from dotenv import load_dotenv
-import json
 
 load_dotenv()
 
 from graph.workflow import graph
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Research Agent API",
@@ -30,12 +34,24 @@ class ResearchResponse(BaseModel):
     research_iterations: int
 
 
+def initial_state(query: str) -> dict:
+    return {
+        "query": query,
+        "questions": [],
+        "findings": [],
+        "critiques": None,
+        "critique_history": [],
+        "research_iterations": 0,
+        "finalReport": ""
+    }
+
+
 # ============================================================
 # Health check
 # ============================================================
 
 @app.get("/health")
-def health():
+async def health():
     return {"status": "ok"}
 
 
@@ -44,69 +60,74 @@ def health():
 # ============================================================
 
 @app.post("/research", response_model=ResearchResponse)
-def run_research(request: ResearchRequest):
+async def run_research(request: ResearchRequest):
     try:
-        result = graph.invoke({
-            "query": request.query,
-            "questions": [],
-            "findings": [],
-            "critiques": None,
-            "critique_history": [],
-            "research_iterations": 0,
-            "finalReport": ""
-        })
+        result = await graph.ainvoke(initial_state(request.query))
+    except Exception:
+        # Log the details; never send exception text to the client.
+        logger.exception("Research run failed")
+        raise HTTPException(status_code=500, detail="Research failed. Please try again.")
 
-        return ResearchResponse(
-            query=request.query,
-            report=result.get("finalReport", "No report generated"),
-            questions=result.get("questions", []),
-            research_iterations=result.get("research_iterations", 0)
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ResearchResponse(
+        query=request.query,
+        report=result.get("finalReport") or "No report generated",
+        questions=result.get("questions", []),
+        research_iterations=result.get("research_iterations", 0)
+    )
 
 
 # ============================================================
-# Streaming endpoint — yields each node update as it happens
+# Streaming endpoint — node updates + writer tokens as SSE
 # ============================================================
+
+# Nodes whose LLM tokens are streamed to the client.
+TOKEN_NODES = {"writer"}
+
+
+def _sse(event: dict) -> str:
+    return f"data: {json.dumps(event)}\n\n"
+
+
+async def research_events(query: str):
+    """SSE events for one research run, in the order they happen:
+
+    - {"type": "node", "node": ..., "data": {...}}  each node's state update
+    - {"type": "token", "content": ...}             each writer token
+    - {"type": "done", "report", "questions", "research_iterations"}  once, last
+    - {"type": "error", "message": ...}             instead of done if the run fails
+    """
+    final = {"report": "", "questions": [], "research_iterations": 0}
+    try:
+        async for mode, chunk in graph.astream(
+            initial_state(query), stream_mode=["updates", "messages"]
+        ):
+            if mode == "messages":
+                message, metadata = chunk
+                if metadata.get("langgraph_node") in TOKEN_NODES and message.content:
+                    yield _sse({"type": "token", "content": message.content})
+                continue
+
+            # mode == "updates": {node_name: update}; parallel branches arrive one by one.
+            for node, update in chunk.items():
+                if isinstance(update, dict):
+                    if "finalReport" in update:
+                        final["report"] = update["finalReport"]
+                    for key in ("questions", "research_iterations"):
+                        if key in update:
+                            final[key] = update[key]
+                yield _sse({"type": "node", "node": node, "data": _serialize(update)})
+
+        yield _sse({"type": "done", **final})
+
+    except Exception:
+        logger.exception("Research stream failed")
+        yield _sse({"type": "error", "message": "Research failed. Please try again."})
+
 
 @app.post("/research/stream")
-def stream_research(request: ResearchRequest):
-
-    def generate():
-        try:
-            for chunk in graph.stream(
-                {
-                    "query": request.query,
-                    "questions": [],
-                    "findings": [],
-                    "critiques": None,
-                    "critique_history": [],
-                    "research_iterations": 0,
-                    "finalReport": ""
-                },
-                stream_mode="updates"   # yields state updates per node
-            ):
-                # chunk = {"node_name": {state updates}}
-                node_name = list(chunk.keys())[0]
-                update = chunk[node_name]
-
-                event = {
-                    "node": node_name,
-                    "data": _serialize(update)
-                }
-
-                # Server-Sent Events format
-                yield f"data: {json.dumps(event)}\n\n"
-
-            yield "data: [DONE]\n\n"
-
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
-
+async def stream_research(request: ResearchRequest):
     return StreamingResponse(
-        generate(),
+        research_events(request.query),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -129,12 +150,10 @@ def _serialize(obj):
         return obj
     if isinstance(obj, dict):
         return {k: _serialize(v) for k, v in obj.items()}
-    if isinstance(obj, list):
+    if isinstance(obj, (list, tuple)):
         return [_serialize(i) for i in obj]
     if hasattr(obj, "model_dump"):      # Pydantic v2
         return obj.model_dump()
-    if hasattr(obj, "dict"):            # Pydantic v1
-        return obj.dict()
     if hasattr(obj, "content"):         # LangChain messages
         return {"role": obj.__class__.__name__, "content": obj.content}
     return str(obj)

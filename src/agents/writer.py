@@ -27,11 +27,12 @@ def sources_section(report: str, findings: list[Finding]) -> str:
     return "# Sources\n\n" + ("\n".join(lines) if lines else "No sources cited.")
 
 
-def writer(state) -> Command[Literal["__end__"]]:
+async def writer(state) -> Command[Literal["__end__"]]:
 
     findings = state["findings"]
 
-    report = llm.invoke(
+    # Tokens from this call are streamed to /research/stream clients.
+    report = await llm.ainvoke(
         f"""
         Write a professional research report using ONLY the numbered findings
         below. Do not add facts, numbers or sources that are not in them.

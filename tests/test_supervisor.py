@@ -1,4 +1,6 @@
 """Every routing branch of the deterministic supervisor, from fake state dicts."""
+import asyncio
+
 import pytest
 
 from agents.supervisor import supervisor
@@ -19,8 +21,12 @@ def max_loops(monkeypatch):
     monkeypatch.setattr(settings, "MAX_RESEARCH_LOOPS", 3)
 
 
+def run(state):
+    return asyncio.run(supervisor(state))
+
+
 def route(state):
-    return supervisor(state).goto
+    return run(state).goto
 
 
 def test_no_questions_goes_to_planner():
@@ -34,11 +40,11 @@ def sent_queries(cmd):
 
 
 def test_round_one_fans_out_one_branch_per_planner_question():
-    cmd = supervisor({"questions": ["q1", "q2"], "research_iterations": 0})
+    cmd = run({"questions": ["q1", "q2"], "research_iterations": 0})
     assert sent_queries(cmd) == ["q1", "q2"]
     assert cmd.update["research_queue"] == ["q1", "q2"]
     assert cmd.update["research_iterations"] == 1
-    assert sent_queries(supervisor({"questions": ["q"]})) == ["q"]
+    assert sent_queries(run({"questions": ["q"]})) == ["q"]
 
 
 def test_researched_without_critique_goes_to_critic():
@@ -68,7 +74,7 @@ def test_round_two_fans_out_gaps_not_questions_and_clears_critique():
         "research_iterations": 1,
         "critiques": INSUFFICIENT,
     }
-    cmd = supervisor(state)
+    cmd = run(state)
     assert sent_queries(cmd) == GAPS
     assert cmd.update["research_queue"] == GAPS
     assert cmd.update["research_iterations"] == 2

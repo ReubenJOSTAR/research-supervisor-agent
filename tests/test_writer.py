@@ -15,38 +15,38 @@ class FakeLLM:
     def __init__(self, content):
         self.content, self.prompts = content, []
 
-    def invoke(self, prompt):
+    async def ainvoke(self, prompt):
         self.prompts.append(prompt)
         return AIMessage(content=self.content)
 
 
-def _write(monkeypatch, content):
+async def _write(monkeypatch, content):
     llm = FakeLLM(content)
     monkeypatch.setattr(writer_module, "llm", llm)
     state = {"query": "solar", "questions": ["q"], "findings": FINDINGS}
-    return writer_module.writer(state).update["finalReport"], llm.prompts[0]
+    return (await writer_module.writer(state)).update["finalReport"], llm.prompts[0]
 
 
-def test_prompt_numbers_every_finding(monkeypatch):
-    _, prompt = _write(monkeypatch, "# Key Findings\n\nx [1]")
+async def test_prompt_numbers_every_finding(monkeypatch):
+    _, prompt = await _write(monkeypatch, "# Key Findings\n\nx [1]")
     for f in FINDINGS:
         assert f"[{f.id}] {f.finding}" in prompt and f.source in prompt
 
 
-def test_sources_list_cited_findings_in_citation_order(monkeypatch):
-    report, _ = _write(monkeypatch, "# Key Findings\n\nCosts fell [2]. Solar doubled [1][2].")
+async def test_sources_list_cited_findings_in_citation_order(monkeypatch):
+    report, _ = await _write(monkeypatch, "# Key Findings\n\nCosts fell [2]. Solar doubled [1][2].")
     sources = report.split("# Sources")[1]
     assert sources.strip().splitlines() == ["[2] https://b.example", "[1] https://a.example"]
     assert "c.example" not in sources  # uncited finding is not listed
 
 
-def test_llm_sources_section_is_replaced_and_unknown_ids_dropped(monkeypatch):
-    report, _ = _write(monkeypatch, "# Analysis\n\nA [1] and B [42].\n\n# Sources\n[42] https://made-up.example")
+async def test_llm_sources_section_is_replaced_and_unknown_ids_dropped(monkeypatch):
+    report, _ = await _write(monkeypatch, "# Analysis\n\nA [1] and B [42].\n\n# Sources\n[42] https://made-up.example")
     assert report.count("# Sources") == 1
     assert "made-up" not in report
     assert report.rstrip().endswith("[1] https://a.example")
 
 
-def test_no_citations_gives_empty_sources(monkeypatch):
-    report, _ = _write(monkeypatch, "# Key Findings\n\nNothing cited.")
+async def test_no_citations_gives_empty_sources(monkeypatch):
+    report, _ = await _write(monkeypatch, "# Key Findings\n\nNothing cited.")
     assert report.rstrip().endswith("# Sources\n\nNo sources cited.")

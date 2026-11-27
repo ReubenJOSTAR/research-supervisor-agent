@@ -9,12 +9,12 @@ llm = get_llm()
 judge = llm.with_structured_output(CritiqueAssessment)
 
 
-def critic(state) -> Command[Literal["supervisor"]]:
+async def critic(state) -> Command[Literal["supervisor"]]:
 
     findings = state["findings"]
     topic = state['query']
 
-    assessment = judge.invoke(
+    assessment = await judge.ainvoke(
         f"""
         You are evaluating research quality for the Topic:{topic}
 

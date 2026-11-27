@@ -17,7 +17,7 @@ def _fan_out(queue: list[str], iterations: int) -> Command:
     )
 
 
-def supervisor(state) -> Command[Literal["planner", "research_task", "critic", "writer"]]:
+async def supervisor(state) -> Command[Literal["planner", "research_task", "critic", "writer"]]:
     """Deterministic router: plain Python, no LLM."""
 
     if not state.get("questions"):

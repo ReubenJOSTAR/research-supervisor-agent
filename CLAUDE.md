@@ -16,9 +16,9 @@ src/
   config/llm.py         get_llm(): the only place ChatOpenAI is created
   graph/state.py        GraphState
   graph/workflow.py     graph assembly
-  agents/               supervisor, planner, researcher, extractor, critic, writer
+  agents/               supervisor, planner, research_task (parallel branch), critic, writer
   schemas/              Pydantic models (Finding, Critique)
-  tools/                search_web (Tavily), ToolNode
+  tools/                search_web (Tavily)
   evaluation/           eval.py (LangSmith) + research_agent_evals.jsonl
 tests/                  pytest suite (pytest.ini sets pythonpath = src)
 ```

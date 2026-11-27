@@ -11,23 +11,23 @@ Supervisor  ←─────────────────────�
     ↓                                      │
 Planner → generates 5 research questions   │
     ↓                                      │
-Researcher → searches web with Tavily      │
+Research ×N → one parallel branch per query │
     ↓                                      │
 Critic → evaluates findings quality        │
     ↓                                      │
-sufficient? ──── No ──→ back to Researcher─┘
+sufficient? ──── No ──→ back to Research ──┘
     ↓ Yes
 Writer → produces structured report
     ↓
 Final Report
 ```
-The critic evaluates coverage, evidence quality, source diversity, and completeness. If findings are insufficient, the supervisor loops back to the researcher — up to 3 iterations — before forcing the writer to synthesize what it has.
+The critic evaluates coverage, evidence quality, source diversity, and completeness. If findings are insufficient, the supervisor fans out a new parallel research round over the critic's gaps — up to 3 rounds — before forcing the writer to synthesize what it has.
 ---
 Agents
 Agent	Role
 Supervisor	Routes between agents based on state. No LLM — pure rule-based logic.
 Planner	Generates 5 structured research questions covering fundamentals, current state, challenges, opportunities, and outlook.
-Researcher	Searches the web using Tavily and extracts structured findings in a single node.
+Research task	One parallel branch per question (round 1) or gap (later rounds): searches the web with Tavily and extracts structured findings. A failing branch contributes no findings instead of failing the run.
 Critic	Evaluates research quality and returns a `sufficient: bool` signal to control the loop.
 Writer	Synthesizes all findings into a structured report with executive summary, analysis, and sources.
 ---
@@ -82,7 +82,7 @@ Returns Server-Sent Events — one event per agent node as it completes:
 ```
 data: {"node": "planner", "data": {"questions": [...]}}
 
-data: {"node": "researcher", "data": {"findings": [...]}}
+data: {"node": "research_task", "data": {"findings": [...]}}
 
 data: {"node": "critic", "data": {"critiques": {"sufficient": false, "scores": {...}, "gaps": [...], "critique": "..."}, "critique_history": [...]}}
 
@@ -152,7 +152,7 @@ research-supervisor-agent/
     ├── agents/
     │   ├── supervisor.py       # rule-based router
     │   ├── planner.py          # question generation
-    │   ├── researcher.py       # web search + findings extraction
+    │   ├── research_task.py    # one parallel research branch (search + extraction)
     │   ├── critic.py           # quality evaluation
     │   └── writer.py           # report synthesis
     ├── schemas/
@@ -165,14 +165,14 @@ research-supervisor-agent/
 ---
 Key Design Decisions
 Rule-based supervisor over LLM routing. The supervisor uses deterministic if/else logic rather than an LLM to decide routing. This eliminates a class of hallucination bugs where the router sends execution to a nonexistent node, and reduces latency and cost per iteration.
-Combined search and extraction in one node. The researcher handles both tool calling and structured extraction internally — two sequential LLM calls in one node. This keeps the graph clean and avoids an extra extraction node hop while maintaining structured `Finding` output.
+Parallel research with `Send` (map-reduce). The supervisor fans out one `research_task` branch per question (or per gap in later rounds). Each branch searches and extracts its own `Finding`s; branches run concurrently and merge through the `findings` reducer before the critic runs. A branch that fails (LLM or search error) logs a warning and returns no findings, so one bad query never sinks the run.
 Pydantic schemas for all inter-agent communication. Every agent output that crosses a node boundary is a typed Pydantic model. This catches malformed outputs at the boundary rather than letting bad data propagate through multiple nodes before failing.
-Scored critique with named gaps. The critic scores coverage, evidence quality, source diversity and completeness (0–1) and lists `gaps` as follow-up queries. `sufficient` is derived from those (every score ≥ 0.7 and no gaps) and a Pydantic validator rejects any `Critique` where it disagrees. From round 2 the researcher searches only the gaps, never the original questions, and every round's critique is kept in `critique_history`.
+Scored critique with named gaps. The critic scores coverage, evidence quality, source diversity and completeness (0–1) and lists `gaps` as follow-up queries. `sufficient` is derived from those (every score ≥ 0.7 and no gaps) and a Pydantic validator rejects any `Critique` where it disagrees. From round 2 the research branches cover only the gaps, never the original questions, and every round's critique is kept in `critique_history`.
 ---
 Environment Variables
 Variable	Description
 `OPENAI_API_KEY`	OpenAI API key — used by all agents
-`TAVILY_API_KEY`	Tavily API key — used by the researcher for web search
+`TAVILY_API_KEY`	Tavily API key — used by research branches for web search
 `OPENAI_MODEL`	OpenAI chat model for every agent (default `gpt-4o-mini`)
 `LLM_TEMPERATURE`	Sampling temperature for every agent (default `0`)
 `MAX_RESEARCH_LOOPS`	Max research rounds before writing (default `3`)

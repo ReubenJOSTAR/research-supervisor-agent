@@ -26,7 +26,6 @@ def run_agent(inputs: dict) -> dict:
     """Runs the research agent and returns the output."""
     result = graph.invoke({
         "query": inputs["query"],
-        "messages": [],
         "questions": [],
         "findings": [],
         "critiques": None,

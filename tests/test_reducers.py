@@ -2,10 +2,10 @@
 from langgraph.graph import END, START, StateGraph
 
 from graph.state import GraphState
-from schemas.finding import Finding
+from schemas.finding import Finding, FindingContent
 
-F1 = Finding(finding="a", source="https://a.example", evidence="ea")
-F2 = Finding(finding="b", source="https://b.example", evidence="eb")
+F1 = FindingContent(finding="a", source="https://a.example", evidence="ea")
+F2 = FindingContent(finding="b", source="https://b.example", evidence="eb")
 
 
 def _two_step_graph(first: dict, second: dict):
@@ -21,7 +21,7 @@ def _two_step_graph(first: dict, second: dict):
 def test_findings_accumulate_across_two_updates():
     graph = _two_step_graph({"findings": [F1]}, {"findings": [F2]})
     result = graph.invoke({"query": "x", "findings": []})
-    assert result["findings"] == [F1, F2]
+    assert result["findings"] == [Finding(id=1, **F1.model_dump()), Finding(id=2, **F2.model_dump())]
 
 
 def test_non_reducer_field_is_overwritten():

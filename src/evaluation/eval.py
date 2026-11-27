@@ -2,6 +2,7 @@
 
 import json
 import os
+import random
 
 from dotenv import load_dotenv
 from langsmith import Client
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 from config.llm import get_llm
+from evaluation.citations import cited_claims, citation_heuristics
 from graph.workflow import graph
 
 # Instantiate LangSmith client
@@ -36,7 +38,8 @@ def run_agent(inputs: dict) -> dict:
     return {
         "report": result.get("finalReport", ""),
         "questions": result.get("questions", []),
-        "research_iterations": result.get("research_iterations", 0)
+        "research_iterations": result.get("research_iterations", 0),
+        "findings": [f.model_dump() for f in result.get("findings", [])],
     }
 
 
@@ -213,6 +216,70 @@ Give one overall score and a brief reasoning."""
 
 
 # ============================================================
+# Evaluator 4 — Citations: heuristic checks + LLM judge
+# Heuristic: every [n] exists in the findings; share of Key Findings /
+# Analysis paragraphs with a citation. Judge: does each sampled cited claim
+# follow from the findings it cites?
+# ============================================================
+
+CITATION_SAMPLE_SIZE = 5
+
+
+class ClaimSupport(BaseModel):
+    supported: bool = Field(description="True if the cited findings support the claim")
+    reasoning: str = Field(description="Brief explanation")
+
+
+def citation_evaluator(run, example):
+    report = run.outputs.get("report", "")
+    findings = {f["id"]: f for f in run.outputs.get("findings", [])}
+
+    h = citation_heuristics(report, findings.keys())
+    results = [
+        {"key": "citation_validity", "score": h["valid_ratio"],
+         "comment": f"{h['num_citations']} cited ids, invalid: {h['invalid_ids']}"},
+        {"key": "citation_coverage", "score": h["paragraph_coverage"],
+         "comment": f"{h['num_paragraphs']} paragraphs in Key Findings / Analysis"},
+    ]
+
+    # Only claims whose citations all exist can be checked against findings.
+    claims = [(c, ids) for c, ids in cited_claims(report) if all(n in findings for n in ids)]
+    if not claims:
+        results.append({"key": "citation_support", "score": 0.0, "comment": "No checkable cited claims"})
+        return {"results": results}
+
+    sample = random.Random(0).sample(claims, min(CITATION_SAMPLE_SIZE, len(claims)))
+    judge = get_llm(temperature=0).with_structured_output(ClaimSupport)
+    supported, notes = 0, []
+    for claim, ids in sample:
+        cited = "\n".join(
+            f"[{n}] {findings[n]['finding']} (evidence: {findings[n]['evidence']})" for n in ids
+        )
+        try:
+            verdict = judge.invoke(
+                f"""Does the cited evidence support this claim from a research report?
+Answer supported=true only if the claim follows from the cited findings.
+
+Claim: {claim}
+
+Cited findings:
+{cited}"""
+            )
+            supported += verdict.supported
+            if not verdict.supported:
+                notes.append(f"unsupported: {claim[:80]}")
+        except Exception as e:
+            notes.append(f"judge error: {type(e).__name__}")
+
+    results.append({
+        "key": "citation_support",
+        "score": round(supported / len(sample), 2),
+        "comment": f"{supported}/{len(sample)} sampled claims supported. " + " | ".join(notes),
+    })
+    return {"results": results}
+
+
+# ============================================================
 # Run the evaluation
 # ============================================================
 
@@ -260,7 +327,8 @@ if __name__ == "__main__":
         evaluators=[
             structure_evaluator,
             depth_evaluator,
-            quality_evaluator
+            quality_evaluator,
+            citation_evaluator,
         ],
         experiment_prefix="research-agent",
         max_concurrency=1,

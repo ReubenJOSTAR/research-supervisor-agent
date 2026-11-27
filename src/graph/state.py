@@ -1,7 +1,7 @@
 import operator
 from typing import Annotated, TypedDict
 
-from schemas.finding import Finding
+from schemas.finding import Finding, add_findings
 from schemas.critique import Critique
 
 
@@ -15,8 +15,9 @@ class GraphState(TypedDict):
     # questions in round 1, the critic's gaps after that. Set by the supervisor.
     research_queue: list[str]
 
-    # Accumulate across rounds and parallel branches.
-    findings: Annotated[list[Finding], operator.add]
+    # Accumulate across rounds and parallel branches; duplicates (same URL +
+    # text) are dropped and each new finding gets the next id (cited as [id]).
+    findings: Annotated[list[Finding], add_findings]
 
     # None until the critic has run for the current round.
     critiques: Critique | None

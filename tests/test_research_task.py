@@ -15,7 +15,7 @@ from agents.planner import ResearchPlan
 from config import settings
 from graph.workflow import graph
 from schemas.critique import CritiqueAssessment
-from schemas.finding import Finding
+from schemas.finding import FindingContent
 
 HIGH = {"coverage": 0.9, "evidence_quality": 0.9, "source_diversity": 0.9, "completeness": 0.9}
 LOW = {**HIGH, "coverage": 0.3}
@@ -61,7 +61,7 @@ class FakeExtractor:
 
     def invoke(self, prompt):
         q = _query_in(prompt)
-        return rt.Findings(findings=[Finding(finding=f"fact {q}", source=f"https://example.com/{q}",
+        return rt.Findings(findings=[FindingContent(finding=f"fact {q}", source=f"https://example.com/{q}",
                                              evidence="e")])
 
 
@@ -142,7 +142,7 @@ def test_fan_out_creates_one_branch_per_question(fakes, monkeypatch):
     assert sorted(agent.queries) == questions                 # N branches, one query each
     assert sorted(f.finding for f in result["findings"]) == [f"fact {q}" for q in questions]
     assert result["research_iterations"] == 1
-    assert result["finalReport"] == "REPORT"
+    assert result["finalReport"].startswith("REPORT")
 
 
 def test_one_failing_branch_does_not_fail_the_run(fakes, monkeypatch):
@@ -154,7 +154,7 @@ def test_one_failing_branch_does_not_fail_the_run(fakes, monkeypatch):
     result = _run()
 
     assert sorted(f.finding for f in result["findings"]) == ["fact q1", "fact q4"]
-    assert result["finalReport"] == "REPORT"
+    assert result["finalReport"].startswith("REPORT")
 
 
 def test_round_two_fans_out_one_branch_per_gap(fakes, monkeypatch):

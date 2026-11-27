@@ -14,7 +14,7 @@ New session? Read `CLAUDE.md`, then this file, then the spec for the next phase 
 | 2 | Config + tests | ✅ Done | 011758e | PR #2 (merged) → `upgrade/v2` from `claude/magical-dijkstra-nqe5vb`. 14 tests pass on 3.11 and 3.13 |
 | 3 | Critic with gaps + scores | ✅ Done | 4457894 | PR #3 → `upgrade/v2`. 25 tests pass (3.11 + 3.13). Done in the same session as Phase 2 at Reuben's request |
 | 4 | Parallel research (Send) | ✅ Done | 6eb09a4 | PR #4 → `upgrade/v2` from `claude/sharp-euler-5o852p`. 31 tests pass (3.13) |
-| 5 | Grounded citations | ✅ Done | f8db652 | PR → `upgrade/v2` from `claude/next-upgrade-phase-k9t1jy`. 51 tests pass (3.13) |
+| 5 | Grounded citations | ✅ Done | f8db652 | PR #6 → `upgrade/v2` from `claude/next-upgrade-phase-k9t1jy`. 51 tests pass (3.13) |
 | 6 | Async + token streaming | ⬜ Not started | | |
 | 7 | Observability + cost | ⬜ Not started | | |
 | 8 | Checkpointing + human approval | ⬜ Not started | | |

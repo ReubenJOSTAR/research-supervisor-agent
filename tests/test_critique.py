@@ -42,15 +42,15 @@ def test_from_assessment_derives_sufficient():
     assert not Critique.from_assessment(CritiqueAssessment(scores=LOW, gaps=["g"], critique="x")).sufficient
 
 
-def test_critic_derives_sufficient_and_appends_history(monkeypatch):
+async def test_critic_derives_sufficient_and_appends_history(monkeypatch):
     import agents.critic as critic_module
 
     class FakeJudge:
-        def invoke(self, prompt):
+        async def ainvoke(self, prompt):
             return CritiqueAssessment(scores=LOW, gaps=["find independent sources"], critique="thin")
 
     monkeypatch.setattr(critic_module, "judge", FakeJudge())
-    cmd = critic_module.critic({"query": "topic", "findings": []})
+    cmd = await critic_module.critic({"query": "topic", "findings": []})
 
     critique = cmd.update["critiques"]
     assert critique.sufficient is False

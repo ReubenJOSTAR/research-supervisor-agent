@@ -4,6 +4,7 @@ The supervisor fans out one `Send("research_task", {"query": ...})` per item in
 `research_queue`. Branches run in the same superstep and their findings merge
 through the `findings` reducer.
 """
+import asyncio
 import logging
 from typing import TypedDict
 
@@ -35,10 +36,10 @@ class ResearchTaskInput(TypedDict):
     query: str
 
 
-def research_task(task: ResearchTaskInput) -> dict:
+async def research_task(task: ResearchTaskInput) -> dict:
     query = task["query"]
     try:
-        response = research_agent.invoke([HumanMessage(content=f"""
+        response = await research_agent.ainvoke([HumanMessage(content=f"""
         You are a research agent. Use search_web to research this question,
         with at most {settings.MAX_TOOL_CALLS_PER_QUESTION} searches.
 
@@ -47,12 +48,13 @@ def research_task(task: ResearchTaskInput) -> dict:
 
         # Hard cap, in case the model ignores the prompt.
         tool_calls = response.tool_calls[: settings.MAX_TOOL_CALLS_PER_QUESTION]
-        results = [search_web.invoke(call["args"]) for call in tool_calls]
+        # A branch's searches run concurrently; any failure fails just this branch.
+        results = await asyncio.gather(*(search_web.ainvoke(call["args"]) for call in tool_calls))
         if not results:
             return {"findings": []}
 
         raw_text = "\n\n".join(results)
-        extracted = extractor_llm.invoke(f"""Extract structured findings from these search results.
+        extracted = await extractor_llm.ainvoke(f"""Extract structured findings from these search results.
 
 For each distinct finding, identify:
 - The key finding or fact

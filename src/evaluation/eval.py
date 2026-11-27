@@ -1,5 +1,6 @@
 # src/evaluation/eval.py
 
+import asyncio
 import json
 import os
 import random
@@ -26,7 +27,8 @@ client = Client()
 
 def run_agent(inputs: dict) -> dict:
     """Runs the research agent and returns the output."""
-    result = graph.invoke({
+    # Nodes are async, so the graph runs with ainvoke.
+    result = asyncio.run(graph.ainvoke({
         "query": inputs["query"],
         "questions": [],
         "findings": [],
@@ -34,7 +36,7 @@ def run_agent(inputs: dict) -> dict:
         "critique_history": [],
         "research_iterations": 0,
         "finalReport": ""
-    })
+    }))
     return {
         "report": result.get("finalReport", ""),
         "questions": result.get("questions", []),

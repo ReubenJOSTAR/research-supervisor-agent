@@ -18,11 +18,11 @@ planner_llm = llm.with_structured_output(
 )
 
 
-def planner(state) -> Command[Literal["supervisor"]]:
+async def planner(state) -> Command[Literal["supervisor"]]:
 
     query = state["query"]
 
-    plan = planner_llm.invoke(
+    plan = await planner_llm.ainvoke(
         f"""
         You are an expert research planner.
 

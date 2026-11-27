@@ -19,7 +19,7 @@ src/
   agents/               supervisor, planner, research_task (parallel branch), critic, writer
   schemas/              Pydantic models (Finding, Critique)
   tools/                search_web (Tavily)
-  evaluation/           eval.py (LangSmith) + research_agent_evals.jsonl
+  evaluation/           eval.py (LangSmith), citations.py (pure [n] parsing/heuristics, also used by the writer), research_agent_evals.jsonl
 tests/                  pytest suite (pytest.ini sets pythonpath = src)
 ```
 Code runs from `src/` (`cd src && uvicorn main:app --reload`); imports are relative to `src/` (e.g. `from agents.critic import critic`). Tests must set this up via `pythonpath = src` in pytest config.

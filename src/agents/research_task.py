@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from config import settings
 from config.llm import get_llm
-from schemas.finding import Finding
+from schemas.finding import FindingContent
 from tools.search import search_web
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,8 @@ research_agent = llm.bind_tools([search_web])
 
 
 class Findings(BaseModel):
-    findings: list[Finding]
+    # No ids here: the `findings` reducer assigns them after dedupe.
+    findings: list[FindingContent]
 
 
 extractor_llm = llm.with_structured_output(Findings)

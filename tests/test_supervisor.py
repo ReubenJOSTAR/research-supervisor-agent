@@ -28,11 +28,17 @@ def test_no_questions_goes_to_planner():
     assert route({"query": "x", "questions": []}) == "planner"
 
 
-def test_round_one_researches_the_planner_questions():
+def sent_queries(cmd):
+    assert all(s.node == "research_task" for s in cmd.goto)
+    return [s.arg["query"] for s in cmd.goto]
+
+
+def test_round_one_fans_out_one_branch_per_planner_question():
     cmd = supervisor({"questions": ["q1", "q2"], "research_iterations": 0})
-    assert cmd.goto == "researcher"
-    assert cmd.update == {"research_queue": ["q1", "q2"]}
-    assert route({"questions": ["q"]}) == "researcher"
+    assert sent_queries(cmd) == ["q1", "q2"]
+    assert cmd.update["research_queue"] == ["q1", "q2"]
+    assert cmd.update["research_iterations"] == 1
+    assert sent_queries(supervisor({"questions": ["q"]})) == ["q"]
 
 
 def test_researched_without_critique_goes_to_critic():
@@ -55,7 +61,7 @@ def test_insufficient_without_gaps_goes_to_writer():
     assert route(state) == "writer"
 
 
-def test_round_two_researches_gaps_not_questions_and_clears_critique():
+def test_round_two_fans_out_gaps_not_questions_and_clears_critique():
     state = {
         "questions": ["original q"],
         "research_queue": ["original q"],
@@ -63,8 +69,9 @@ def test_round_two_researches_gaps_not_questions_and_clears_critique():
         "critiques": INSUFFICIENT,
     }
     cmd = supervisor(state)
-    assert cmd.goto == "researcher"
+    assert sent_queries(cmd) == GAPS
     assert cmd.update["research_queue"] == GAPS
+    assert cmd.update["research_iterations"] == 2
     assert "original q" not in cmd.update["research_queue"]
     assert cmd.update["critiques"] is None
 

@@ -48,7 +48,6 @@ def run_research(request: ResearchRequest):
     try:
         result = graph.invoke({
             "query": request.query,
-            "messages": [],
             "questions": [],
             "findings": [],
             "critiques": None,
@@ -80,7 +79,6 @@ def stream_research(request: ResearchRequest):
             for chunk in graph.stream(
                 {
                     "query": request.query,
-                    "messages": [],
                     "questions": [],
                     "findings": [],
                     "critiques": None,
@@ -127,8 +125,8 @@ def _serialize(obj):
     Pydantic models, LangChain messages, and custom objects
     all need special handling.
     """
-    if obj is None:
-        return None
+    if obj is None or isinstance(obj, (str, int, float, bool)):
+        return obj
     if isinstance(obj, dict):
         return {k: _serialize(v) for k, v in obj.items()}
     if isinstance(obj, list):
